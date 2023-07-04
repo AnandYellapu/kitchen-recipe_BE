@@ -3,11 +3,10 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-
-
 var cors=  require('cors');
 
 const foodRoutes = require('./routes/foodRouter');
+const userRoutes = require('./routes/userRoutes');
 
 // Mount the food routes
 // app.use('/api/foods', foodRoutes);
@@ -15,6 +14,7 @@ const foodRoutes = require('./routes/foodRouter');
 const dotenv = require('dotenv');
 dotenv.config({ path: './config/config.env' });
 const connectDatabase = require('./config/database.js');
+const authenticateToken = require('./middleware/authenticateToken');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -39,6 +39,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/api/food', foodRouter);
+app.use('/api/users', userRoutes);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

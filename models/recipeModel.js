@@ -23,25 +23,25 @@ const foodSchema = new mongoose.Schema(
             required: true,
         },
         ingredients: {
-        type: [
-      {
-        item: {
-          type: String,
-          required: true
-        },
-        amount: {
-          type: mongoose.Schema.Types.Mixed,
-          required: true
-        },
-        unit: {
-          type: String,
-          required: true
+            type: [
+              {
+                item: {
+                  type: String,
+                  required: true
+                },
+                amount: {
+                  type: [Number, String],
+                  required: true
+                },
+                unit: {
+                  type: String,
+                  required: true
+                }
+              }
+            ],
+            required: true
         }
-      }
-    ],
-    required: true
-  }
-});
+    });
 
 const Food = mongoose.model('Food', foodSchema);
 
