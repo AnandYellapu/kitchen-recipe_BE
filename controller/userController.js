@@ -55,7 +55,7 @@ const getUsers = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-  const token = await crypto.randomBytes(20).toString("hex");
+  const token = crypto.randomBytes(20).toString("hex");
   const user = await User.findOne({ email: req.body.email });
 
   if (!user) {
@@ -69,18 +69,17 @@ const forgotPassword = async (req, res) => {
     await user.save();
 
     let transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      service: "gmail",
-      port: 465,
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
       secure: true,
       auth: {
-        user: "anandsaiii1200@gmail.com",
-        pass: "azjtjuhdytbpdcfn",
+        user: process.env.SMTP_USERNAME,
+        pass: process.env.SMTP_PASSWORD,
       },
     });
 
     let info = await transporter.sendMail({
-      from: `anandsaiii1200@gmail.com`,
+      from: process.env.SMTP_USERNAME,
       to: user.email,
       subject: "KITCHEN-RECIPE-MANAGEMENT - Reset Password",
       text: `You are receiving this because you have requested the reset of the password of your account.\n\nToken: ${token}\n\nIf you didn't request this, please ignore this email and your password will remain unchanged.`,
@@ -94,8 +93,6 @@ const forgotPassword = async (req, res) => {
     return res.status(400).json({ error: error.message });
   }
 };
-
-
 
 const resetPassword = async (req, res) => {
   const { token, password } = req.body;
@@ -111,7 +108,6 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired token' });
     }
 
-     try {
     // Hash the new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -121,13 +117,27 @@ const resetPassword = async (req, res) => {
     user.resetPasswordExpires = null;
     await user.save();
 
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: true,
+      auth: {
+        user: process.env.SMTP_USERNAME,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
+
+    let info = await transporter.sendMail({
+      from: process.env.SMTP_USERNAME,
+      to: user.email,
+      subject: "KITCHEN-RECIPE-MANAGEMENT - Password Reset Successful",
+      text: `Your password has been reset successfully. You can now log in with your new password.`,
+      html: `<p>Your password has been reset successfully.</p><p>You can now log in with your new password.</p>`,
+    });
+
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to reset password' });
   }
-} catch (error) {
-    res.status(500).json({ error: 'Failed to reset password' });
-  }
 };
-
 module.exports = { register, login, forgotPassword, resetPassword, getProfile, getUsers };
