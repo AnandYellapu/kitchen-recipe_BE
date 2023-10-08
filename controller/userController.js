@@ -111,7 +111,7 @@ function sendResetEmail(email, resetToken) {
       from: process.env.SMTP_USERNAME,
       to: email,
       subject: 'Password Reset',
-      text: `Click the following link to reset your password: https://mixbloog.netlify.app/reset-password/${resetToken}`,
+      text: `Click the following link to reset your password: https://kitchen-recipe-management1.netlify.app/reset-password/${resetToken}`,
     };
 
     // Send email
