@@ -1,133 +1,174 @@
+const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-const User = require('../models/User');
+const generateResetToken = require('../utils/generateResetToken');
 
-const register = async (req, res) => {
-  const { email, password } = req.body;
+const registerUser = async (req, res) => {
+  const { username, email, password } = req.body;
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Check if the user already exists
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
 
-    const user = await User.create({ email, password: hashedPassword });
-    res.status(201).json({ user });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to register user' });
+    // Create a new user
+    user = new User({ username, email, password });
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+
+    // Save the user to the database
+    await user.save();
+
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
-const login = async (req, res) => {
+const loginUser = async (req, res) => {
   const { email, password } = req.body;
+
+  try {
+    // Check if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Create and send JWT token
+    const payload = {
+      user: {
+        id: user.id,
+        role: user.isAdmin ? 'admin' : 'user', // Use 'admin' or 'user' based on the 'admin' field
+      },
+    };
+
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
+      if (err) throw err;
+      res.json({ token });
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
 
   try {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    // Generate a reset token
+    const resetToken = await generateResetToken();
 
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid password' });
-    }
+    // Set token and expiration in the user model
+    user.resetToken = resetToken;
+    user.resetTokenExpiration = new Date(Date.now() + 3600000); // 1 hour from now
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-
-    res.status(200).json({ user, token });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to login' });
-  }
-};
-
-const getProfile = (req, res) => {
-  res.status(200).json({ user: req.user });
-};
-
-const getUsers = async (req, res) => {
-  try {
-    const users = await User.find();
-    res.status(200).json({ users });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get users' });
-  }
-};
-
-const forgotPassword = async (req, res) => {
-  const token = await crypto.randomBytes(20).toString("hex");
-  const user = await User.findOne({ email: req.body.email });
-
-  if (!user) {
-    return res.status(400).json({ error: "No user with such email!" });
-  }
-
-  user.resetPasswordToken = token;
-  user.resetPasswordExpires = Date.now() + 3600000;
-
-  try {
     await user.save();
 
-    let transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      service: "gmail",
-      port: 465,
-      secure: true,
+    // Send reset email
+    sendResetEmail(user.email, resetToken);
+
+    res.status(200).json({ message: 'Password reset email sent successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+function sendResetEmail(email, resetToken) {
+  try {
+    // Configure Nodemailer transport
+    const transporter = nodemailer.createTransport({
+      // Configure your email provider here
+      service: 'gmail',
       auth: {
-        user: "anandsaiii1200@gmail.com",
-        pass: "azjtjuhdytbpdcfn",
+        user: process.env.SMTP_USERNAME,
+        pass: process.env.SMTP_PASSWORD,
       },
     });
 
-    let info = await transporter.sendMail({
-      from: `anandsaiii1200@gmail.com`,
-      to: user.email,
-      subject: "KITCHEN-RECIPE-MANAGEMENT - Reset Password",
-      text: `You are receiving this because you have requested the reset of the password of your account.\n\nToken: ${token}\n\nIf you didn't request this, please ignore this email and your password will remain unchanged.`,
-      html: `<p>You are receiving this because you have requested the reset of the password of your account.</p><p><strong>Token: ${token}</strong></p><p>If you didn't request this, please ignore this email and your password will remain unchanged.</p>`,
-    });
+    // Create email content
+    const mailOptions = {
+      from: process.env.SMTP_USERNAME,
+      to: email,
+      subject: 'Password Reset',
+      text: `Click the following link to reset your password: http://localhost:3000/reset-password/${resetToken}`,
+    };
 
-    return res.json({
-      message: `An email has been sent to ${user.email} with further instructions`,
+    // Send email
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error(error);
+      } else {
+        console.log('Email sent: ' + info.response);
+      }
     });
   } catch (error) {
-    return res.status(400).json({ error: error.message });
+    console.error('Error sending reset email:', error.message);
   }
-};
-
-
+}
 
 const resetPassword = async (req, res) => {
-  const { token, password } = req.body;
+  const resetToken = req.params.resetToken;
+  const { newPassword } = req.body;
 
   try {
-    // Find the user with the reset token and check the expiration
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid or expired token' });
+    if (!resetToken || !newPassword) {
+      return res.status(400).json({ message: 'Invalid request. Missing resetToken or newPassword.' });
     }
 
-     try {
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const user = await User.findOne({
+      resetToken,
+      resetTokenExpiration: { $gt: new Date() },
+    });
+  
 
-    // Update the user's password and reset token fields
-    user.password = hashedPassword;
-    user.resetPasswordToken = null;
-    user.resetPasswordExpires = null;
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Update password and clear reset token fields
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.resetToken = null;
+    user.resetTokenExpiration = null;
+
     await user.save();
 
-    res.json({ message: 'Password reset successfully' });
+    res.status(200).json({ message: 'Password reset successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to reset password' });
-  }
-} catch (error) {
-    res.status(500).json({ error: 'Failed to reset password' });
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-module.exports = { register, login, forgotPassword, resetPassword, getProfile, getUsers };
+module.exports = {
+  registerUser,
+  loginUser,
+  forgotPassword,
+  resetPassword,
+};
+
+
+
+

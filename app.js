@@ -14,7 +14,7 @@ const userRoutes = require('./routes/userRoutes');
 const dotenv = require('dotenv');
 dotenv.config({ path: './config/config.env' });
 const connectDatabase = require('./config/database.js');
-const authenticateToken = require('./middleware/authenticateToken');
+const verifyToken = require('./middleware/auth.js'); 
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -40,6 +40,13 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/api/food', foodRouter);
 app.use('/api/users', userRoutes);
+
+app.use('/api/auth/check-admin', verifyToken, (req, res) => {
+  // Assuming user roles are stored in the token
+  const isAdmin = req.user.role === 'admin';
+
+  res.json({ isAdmin });
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

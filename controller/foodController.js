@@ -1,8 +1,7 @@
 const Food = require('../models/recipeModel')
 
 
-
-exports.getFoods = async (req, res, next) => {
+const getFoods = async (req, res, next) => {
     const food_items = await Food.find();
     res.status(200).json(
         {
@@ -11,7 +10,7 @@ exports.getFoods = async (req, res, next) => {
     )
 }
 
-exports.getFoodById = async (req, res, next) => {
+const getFoodById = async (req, res, next) => {
   try {
     const food = await Food.findById(req.params.id, req.body);
     
@@ -27,7 +26,7 @@ exports.getFoodById = async (req, res, next) => {
 };
 
 
-exports.createFood = async (req, res, next) => {
+const createFood = async (req, res, next) => {
     const new_food = await Food.create(req.body);
     res.status(201).json(
         {
@@ -36,7 +35,7 @@ exports.createFood = async (req, res, next) => {
     )
 }
 
-exports.updateFood = async (req, res, next) => {
+const updateFood = async (req, res, next) => {
     const found_item = await Food.findById(req.params.id);
 
     if (!found_item) {
@@ -55,7 +54,7 @@ exports.updateFood = async (req, res, next) => {
     )
 }
 
-exports.deleteFood = async (req, res, next) => {
+const deleteFood = async (req, res, next) => {
     const found_item = await Food.findById(req.params.id);
 
     if (!found_item) {
@@ -73,3 +72,6 @@ exports.deleteFood = async (req, res, next) => {
         }
     )
 }
+
+
+module.exports = { getFoods, getFoodById, createFood, updateFood, deleteFood };
