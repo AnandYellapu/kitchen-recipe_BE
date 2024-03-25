@@ -3,27 +3,19 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var cors=  require('cors');
-
-const foodRoutes = require('./routes/foodRouter');
-const userRoutes = require('./routes/userRoutes');
-
-// Mount the food routes
-// app.use('/api/foods', foodRoutes);
+var cors = require('cors');
 
 const dotenv = require('dotenv');
 dotenv.config({ path: './config/config.env' });
 const connectDatabase = require('./config/database.js');
-const verifyToken = require('./middleware/auth.js'); 
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-const foodRouter = require("./routes/foodRouter");
+const authRoutes = require('./routes/authRoutes');
+const recipeRoutes = require('./routes/recipeRoutes');
 
 var app = express();
 
-// Start DB Connection 
-connectDatabase()
+// Start DB Connection
+connectDatabase();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -36,24 +28,15 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
-app.use('/api/food', foodRouter);
-app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/recipes', recipeRoutes);
 
-app.use('/api/auth/check-admin', verifyToken, (req, res) => {
-  // Assuming user roles are stored in the token
-  const isAdmin = req.user.role === 'admin';
-
-  res.json({ isAdmin });
-});
-
-// catch 404 and forward to error handler
+// 404 error handler
 app.use(function(req, res, next) {
   next(createError(404));
 });
 
-// error handler
+// Error handler
 app.use(function(err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;

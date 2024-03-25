@@ -1,39 +1,31 @@
+// models/User.js
+
 const mongoose = require('mongoose');
 
-const userSchema = new mongoose.Schema(
-  {
-    username:{
-      type: String,
-      required: true,
-      unique: true,
+const userSchema = new mongoose.Schema({
+    username: {
+        type: String,
+        required: true,
+        unique: true
     },
     email: {
-      type: String,
-      required: true,
-      unique: true,
+        type: String,
+        required: true,
+        unique: true
     },
     password: {
-      type: String,
-      required: true,
+        type: String,
+        required: true
     },
-    resetToken: {
-      type: String,
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
     },
-    resetTokenExpiration: {
-      type: Date,
-    },
-    isAdmin: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  { timestamps: true }
-);
+    resetPasswordToken: String, // Token for password reset
+    resetPasswordExpires: Date // Expiry date for password reset token
+});
 
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
-
-
-
-
