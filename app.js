@@ -5,6 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require('cors');
 
+
 const dotenv = require('dotenv');
 dotenv.config({ path: './config/config.env' });
 const connectDatabase = require('./config/database.js');
@@ -16,6 +17,7 @@ var app = express();
 
 // Start DB Connection
 connectDatabase();
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

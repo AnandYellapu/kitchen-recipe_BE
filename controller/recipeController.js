@@ -2,6 +2,8 @@
 
 const Recipe  = require('../models/Recipe');
 
+
+
 // Controller function to create a new recipe
 const createRecipe = async (req, res) => {
     try {
@@ -26,6 +28,9 @@ const createRecipe = async (req, res) => {
         res.status(500).json({ message: 'Internal server error.' });
     }
 };
+
+
+
 
 // Controller function to get all recipes
 const getRecipes = async (req, res) => {

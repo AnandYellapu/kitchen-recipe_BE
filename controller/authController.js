@@ -1,7 +1,7 @@
 
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const User = require('../.git/User');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto'); // Import the crypto module
 
