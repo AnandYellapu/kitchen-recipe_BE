@@ -30,7 +30,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/api/auth', authRoutes);
+app.use('/api/authRoutes', authRoutes);
 app.use('/api/recipes', recipeRoutes);
 
 // 404 error handler
